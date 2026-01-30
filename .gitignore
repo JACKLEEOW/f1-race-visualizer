@@ -1,0 +1,13 @@
+# Mac System Files
+.DS_Store
+
+# Backend
+backend/venv/
+backend/__pycache__/
+*.pyc
+
+# Frontend
+frontend/node_modules/
+frontend/.next/
+frontend/out/
+frontend/.env.local
