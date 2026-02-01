@@ -1,6 +1,6 @@
 from typing import TypedDict, List, Dict, Union
-# 1. One Driver at One Moment
-# We use single letters to keep the file size small (Optimization)
+# One Driver at one moment
+# use single letters to keep the file size small
 class DriverTelemetry(TypedDict):
     x: float  # X Coordinate (Normalized 0-10000)
     y: float  # Y Coordinate (Normalized 0-10000)
