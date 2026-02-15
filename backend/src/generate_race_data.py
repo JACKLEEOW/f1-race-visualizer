@@ -7,7 +7,14 @@ import numpy as np
 from race_types import DriverTelemetry, RaceFrame, RaceData
 from typing import List, Dict, Union, TypedDict, Any
 
-fastf1.Cache.enable_cache('../cache') 
+cache_dir = './cache'
+
+# Check if it exists, if not, create it
+if not os.path.exists(cache_dir):
+    os.makedirs(cache_dir)
+
+fastf1.Cache.enable_cache(cache_dir) 
+
 
 def load_session(year: int, location: str):
     session = fastf1.get_session(year, location, 'R')
@@ -19,7 +26,7 @@ def create_coordinate_transformer(session: fastf1.Session):
     fastest_lap = session.laps.pick_fastest()
     ref_tel= fastest_lap.get_telemetry()
     x_min = ref_tel['X'].min()
-    x_max = ref_tel('X').max()
+    x_max = ref_tel['X'].max()
     y_min = ref_tel['Y'].min()
     y_max = ref_tel['Y'].max()
     max_range = max(x_max-x_min, y_max-y_min)
@@ -51,7 +58,7 @@ def process_drivers(session, transformer):
     for driver in drivers:
         #get laps, change this from 5 laps after mvp is done
         try:
-            laps = session.laps.pick_driver(driver)
+            laps = session.laps.pick_drivers(driver)
             # if driver crashes lap 1, skip
             if len(laps) > 5:
                 laps = laps[laps['LapNumber']<= 5]
@@ -59,6 +66,10 @@ def process_drivers(session, transformer):
                 continue
             #get telemetry
             tel = laps.get_telemetry()
+            needed_cols = ['Time', 'Speed', 'RPM', 'nGear', 'Throttle', 'Brake', 'X', 'Y', 'Z']
+            tel = tel[needed_cols].copy() # .copy() avoids pandas warnings
+
+            tel['Brake'] = tel['Brake'].astype(float)
             #resample to 200ms to match
             #resample('200ms') creates the bins, mean() averages data, ffill() fills gaps
 
@@ -107,7 +118,7 @@ def generate_race_data(year: int, location: str):
         for driver, df in aligned_data.items():
             if timestamp in df.index:
                 row = df.loc[timestamp]
-                if row['Brake'] == True:
+                if row['Brake'] > 0.5:
                     brake_val = 100
                 else:
                     brake_val = 0
@@ -121,15 +132,27 @@ def generate_race_data(year: int, location: str):
                     "r": int(row['RPM'])
                 }
         race_data['timeline'].append(frame)
-            # 6. Save to File
-    output_path = '../../../frontend/public/data/race.json'
+    
+    # Get the folder where script is located (backend/src)
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+    
+    # Go up two levels to the project root (backend/src -> backend -> root)
+    project_root = os.path.abspath(os.path.join(script_dir, '../../'))
+    
+    # Build the safe absolute path to frontend
+    output_path = os.path.join(project_root, 'frontend', 'public', 'data', 'race.json')
+
+    print(f"Saving to absolute path: {output_path}") # Debug print to confirm location
+    
     # Ensure directory exists
     os.makedirs(os.path.dirname(output_path), exist_ok=True)
     
     with open(output_path, 'w') as f:
         json.dump(race_data, f)
         
-    print(f"Success! Data saved to {output_path}")
+    print(f" Success! Data saved.")
+        
+
 
 
 
