@@ -1,6 +1,7 @@
 'use client';
 
 import { useRaceEngine } from '../hooks/useRaceEngine';
+import TrackMap from '../components/TrackMap';
 
 export default function RaceVisualizer() {
     const { 
@@ -11,7 +12,13 @@ export default function RaceVisualizer() {
     } = useRaceEngine();
 
     return (
-        <div className="p-8 font-sans">
+        
+        <div className="p-8 font-sans">            
+            {/* track map test */}
+            {raceData && (
+            <TrackMap trackMap={raceData.track_map} />
+            )}
+            
             <h1 className="text-3xl font-bold mb-4">F1 Race Engine Test</h1>
             
             {/* Status Panel */}
@@ -27,6 +34,7 @@ export default function RaceVisualizer() {
             >
                 {isPlaying ? 'Pause' : 'Play'}
             </button>
+
         </div>
     );
 }
