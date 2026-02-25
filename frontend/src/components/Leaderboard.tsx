@@ -14,7 +14,7 @@ interface LeaderboardProps {
 export default function Leaderboard({ activeSlice, drivers, selectedDriver, onSelectDriver }: LeaderboardProps) {
     if (!activeSlice) return null;
 
-    // 1. Get the drivers and sort them by distance (highest 'd' first)
+    // 1. get drivers and sort them by distance 
     const sortedDrivers = Object.keys(activeSlice)
         .filter(key => key !== 't') 
         .sort((a, b) => {
@@ -45,7 +45,7 @@ export default function Leaderboard({ activeSlice, drivers, selectedDriver, onSe
                             key={driverId}
                             // 'layout' tells Framer Motion to animate any changes in position
                             layout
-                            // Adding a spring transition makes the swap feel fluid instead of linear
+                            // Adding a spring transition 
                             transition={{
                                 type: "spring",
                                 stiffness: 300,

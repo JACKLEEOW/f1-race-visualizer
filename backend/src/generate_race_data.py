@@ -76,8 +76,8 @@ def process_drivers(session, transformer):
         try:
             laps = session.laps.pick_drivers(driver)
             # if driver crashes lap 1, skip
-            if len(laps) > 5:
-                laps = laps[laps['LapNumber']<= 5]
+            if len(laps) > 5: #comment out for full race
+                laps = laps[laps['LapNumber']<= 5] 
             if laps.empty:
                 continue
             #get telemetry
@@ -178,7 +178,7 @@ def generate_race_data(year: int, location: str):
 
 
 if __name__ == "__main__":
-    generate_race_data(2025, 'Bahrain')
+    generate_race_data(2021, 'Abu Dhabi')
 
 
 
