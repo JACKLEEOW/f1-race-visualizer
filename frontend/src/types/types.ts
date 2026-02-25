@@ -13,14 +13,21 @@ export interface RaceFrame {
     [driverId: string]: DriverTelemetry | number; // dynamic driver keys
 }
 
+export interface DriverRosterEntry {
+    abbr:  string;  // e.g. "VER"
+    name:  string;  // e.g. "Max Verstappen"
+    color: string;  // e.g. "#3671C6"
+    team:  string;  // e.g. "Red Bull Racing"
+}
+
 export interface RaceMetadata{
     circuit: string;
     year: number;
 }
 
 export interface RaceData {
-    metadata: RaceMetadata;
-    // track map is a list of [x, y] points to plot map once
-    track_map: [number, number][]
-    timeline: RaceFrame[]
+    metadata:  RaceMetadata;
+    drivers:   Record<string, DriverRosterEntry>;
+    track_map: [number, number][];
+    timeline:  RaceFrame[];
 }

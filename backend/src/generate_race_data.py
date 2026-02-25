@@ -4,7 +4,7 @@ import os
 import fastf1  
 import pandas as pd  
 import numpy as np
-from race_types import DriverTelemetry, RaceFrame, RaceData
+from race_types import DriverTelemetry, RaceFrame, RaceData, DriverRosterEntry
 from typing import List, Dict, Union, TypedDict, Any
 
 cache_dir = './cache'
@@ -49,6 +49,22 @@ def create_coordinate_transformer(session: fastf1.Session):
     ))
 
     return transform_coords, track_map
+
+def build_driver_roster(session, driver_numbers: list) -> dict:
+    roster = {}
+    for number in driver_numbers:
+        try:
+            info = session.get_driver(number)
+            color = info.get('TeamColor', 'ffffff')
+            roster[str(number)] = {
+                "abbr":  info.get('Abbreviation', str(number)),
+                "name":  info.get('FullName', f'Driver {number}'),
+                "color": f"#{color}" if not str(color).startswith('#') else str(color),
+                "team":  info.get('TeamName', 'Unknown'),
+            }
+        except Exception as e:
+            print(f"Could not get info for driver {number}: {e}")
+    return roster
 
 def process_drivers(session, transformer):
     print("processing drivers now")
@@ -97,19 +113,23 @@ def generate_race_data(year: int, location: str):
     transformer, track_map = create_coordinate_transformer(session)
 
     aligned_data = process_drivers(session, transformer)
+    driver_numbers = list(aligned_data.keys())
+    drivers = build_driver_roster(session, driver_numbers)
 
     #create master timeline
     all_indices = pd.Index([])
-    for df in  aligned_data.values():
+    for df in aligned_data.values():
         all_indices = all_indices.union(df.index)
     all_indices = all_indices.sort_values()
+
     race_data: RaceData = {
-    "metadata": { 
-        "circuit": session.event.EventName, 
-        "year": year 
-    },
-    "track_map": track_map,
-    "timeline": []
+        "metadata": {
+            "circuit": session.event.EventName,
+            "year": year
+        },
+        "drivers": drivers,
+        "track_map": track_map,
+        "timeline": []
     }
 
     for timestamp in all_indices:
@@ -158,7 +178,7 @@ def generate_race_data(year: int, location: str):
 
 
 if __name__ == "__main__":
-    generate_race_data(2023, 'Monaco')
+    generate_race_data(2025, 'Bahrain')
 
 
 

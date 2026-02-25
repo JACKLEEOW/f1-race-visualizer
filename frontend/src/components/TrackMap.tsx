@@ -1,14 +1,17 @@
 // src/components/TrackMap.tsx
 import React from 'react';
 import DriverDot from './DriverDot';
+import { getColor, getAbbr } from '../lib/driverInfo';
+import { DriverRosterEntry } from '../types/types';
 
 interface TrackMapProps {
     trackMap: [number, number][];
-    timeline: any[]; // Changed to expect the full timeline array
-    currentTime: number; 
+    timeline: any[];
+    drivers?: Record<string, DriverRosterEntry>;
+    currentTime: number;
 }
 
-export default function TrackMap({ trackMap, timeline, currentTime }: TrackMapProps) {
+export default function TrackMap({ trackMap, timeline, drivers, currentTime }: TrackMapProps) {
     if (!trackMap || trackMap.length < 2 || !timeline || timeline.length === 0) return null;
 
     const pathString = trackMap.reduce((acc, point, index) => {
@@ -40,8 +43,10 @@ export default function TrackMap({ trackMap, timeline, currentTime }: TrackMapPr
     const safeIndex = Math.min(sliceIndex, timeline.length - 1);
     const activeSlice = timeline[safeIndex];
 
-    // Grab Max Verstappen's data for this specific 0.2s slice
-    const driverData = activeSlice ? activeSlice['1'] : null; 
+    // Extract all driver keys from the active slice (everything except 't')
+    const driverIds = activeSlice
+        ? Object.keys(activeSlice).filter(k => k !== 't')
+        : [];
 
     return (
         <div className="w-full aspect-square rounded-xl p-4 bg-[#0a0f1e] border border-[#1e3a5f] shadow-[0_0_40px_rgba(56,189,248,0.08)]">
@@ -97,14 +102,20 @@ export default function TrackMap({ trackMap, timeline, currentTime }: TrackMapPr
                     filter="url(#trackGlow)"
                 />
                 
-                {/* Send exact X/Y coords to the DriverDot */}
-                {driverData && (
-                    <DriverDot
-                        x={driverData.x}
-                        y={driverData.y}
-                        color="#3671C6"
-                    />
-                )}
+                {/* Render a dot for every driver in the current slice */}
+                {driverIds.map(id => {
+                    const d = activeSlice[id];
+                    if (!d?.x || !d?.y) return null;
+                    return (
+                        <DriverDot
+                            key={id}
+                            x={d.x}
+                            y={d.y}
+                            color={getColor(id, drivers)}
+                            driverNumber={getAbbr(id, drivers)}
+                        />
+                    );
+                })}
             </svg>
         </div>
     );
