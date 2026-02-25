@@ -24,29 +24,27 @@ export function useRaceEngine() {
     
     useEffect(() => {
         let animationFrameId: number;
-        let lastUpdateTime = performance.now(); // precise browser clock
+        let lastUpdateTime = performance.now();
         const updateTimer = (currentPerformanceTime: number) => {
             const deltaTime = currentPerformanceTime - lastUpdateTime;
             // convert delta time to seconds
-            const deltaTimeSec= deltaTime / 1000
+            const deltaTimeSec = deltaTime / 1000;
 
             // update current time
-            setCurrentTime(prevTime => prevTime+ deltaTimeSec);
+            setCurrentTime(prevTime => prevTime + deltaTimeSec);
 
             // reset time for next frame
-            lastUpdateTime = currentPerformanceTime
-            // request next anim frame
+            lastUpdateTime = currentPerformanceTime;
 
-            animationFrameId = requestAnimationFrame(updateTimer)
+            animationFrameId = requestAnimationFrame(updateTimer);
+        };
+        if (isPlaying) {
+            // when user hits play, initialize clock and start the loop
+            lastUpdateTime = performance.now();
+            animationFrameId = requestAnimationFrame(updateTimer);
+        }
+        return () => cancelAnimationFrame(animationFrameId);
+    }, [isPlaying]);
 
-        
-    };
-    if (isPlaying) {
-        // when user hits play,  initialize clock and start the loop
-        lastUpdateTime= performance.now()
-        animationFrameId = requestAnimationFrame(updateTimer)
-    }
-    return () => cancelAnimationFrame(animationFrameId);
-},[isPlaying]);
-    return {raceData, currentTime, isPlaying,setCurrentTime,setIsPlaying};
+    return { raceData, currentTime, isPlaying, setCurrentTime, setIsPlaying };
 }

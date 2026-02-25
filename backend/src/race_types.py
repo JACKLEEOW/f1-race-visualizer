@@ -9,6 +9,7 @@ class DriverTelemetry(TypedDict):
     t: int    # Throttle (0-100)
     b: int    # Brake (0-100)
     r: int    # RPM
+    d: float  # Distance travelled (meters)
 
 # Snapshot schema
 # has a timestamp 't', and then any number of driver keys (e.g., "VER", "HAM")

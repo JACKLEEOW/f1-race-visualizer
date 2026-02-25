@@ -66,7 +66,7 @@ def process_drivers(session, transformer):
                 continue
             #get telemetry
             tel = laps.get_telemetry()
-            needed_cols = ['Time', 'Speed', 'RPM', 'nGear', 'Throttle', 'Brake', 'X', 'Y', 'Z']
+            needed_cols = ['Time', 'Speed', 'RPM', 'nGear', 'Throttle', 'Brake', 'X', 'Y', 'Z','Distance']
             tel = tel[needed_cols].copy() # .copy() avoids pandas warnings
 
             tel['Brake'] = tel['Brake'].astype(float)
@@ -129,7 +129,8 @@ def generate_race_data(year: int, location: str):
                     "g": int(row['nGear']),
                     "t": int(row['Throttle']),
                     "b": brake_val, 
-                    "r": int(row['RPM'])
+                    "r": int(row['RPM']),
+                    "d": round(row['Distance'], 1) # patched to add dist in meters
                 }
         race_data['timeline'].append(frame)
     

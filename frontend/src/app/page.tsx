@@ -16,7 +16,11 @@ export default function RaceVisualizer() {
         <div className="p-8 font-sans">            
             {/* track map test */}
             {raceData && (
-            <TrackMap trackMap={raceData.track_map} />
+            <TrackMap
+                trackMap={raceData.track_map}
+                timeline={raceData.timeline}
+                currentTime={currentTime}
+            />
             )}
             
             <h1 className="text-3xl font-bold mb-4">F1 Race Engine Test</h1>
