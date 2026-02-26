@@ -53,6 +53,7 @@ export default function RaceVisualizer() {
                                 trackMap={raceData.track_map} 
                                 timeline={raceData.timeline}
                                 drivers={raceData.drivers}
+                                selectedDriver={selectedDriver}
                                 currentTime={currentTime}
                             />
                         )}

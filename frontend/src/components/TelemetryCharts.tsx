@@ -1,5 +1,5 @@
 // src/components/TelemetryCharts.tsx
-import React, { useMemo } from 'react';
+import React, { useMemo, memo } from 'react';
 import { getAbbr, getName } from '../lib/driverInfo';
 import {
   LineChart, Line, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine, ComposedChart
@@ -14,7 +14,7 @@ interface TelemetryChartsProps {
     currentTime: number;
 }
 
-export default function TelemetryCharts({ timeline, drivers, selectedDriver, currentTime }: TelemetryChartsProps) {
+function TelemetryCharts({ timeline, drivers, selectedDriver, currentTime }: TelemetryChartsProps) {
     // Transform the full timeline once — only re-runs when driver or data changes, not every frame
     const chartData = useMemo(() => {
         if (!timeline || !selectedDriver) return [];
@@ -136,3 +136,15 @@ export default function TelemetryCharts({ timeline, drivers, selectedDriver, cur
         </div>
     );
 }
+
+// Only re-render when the 0.2s slice index changes — not on every animation frame
+export default memo(TelemetryCharts, (prev, next) => {
+    const prevIdx = Math.floor(prev.currentTime / 0.2);
+    const nextIdx = Math.floor(next.currentTime / 0.2);
+    return (
+        prevIdx === nextIdx &&
+        prev.selectedDriver === next.selectedDriver &&
+        prev.timeline === next.timeline &&
+        prev.drivers === next.drivers
+    );
+});

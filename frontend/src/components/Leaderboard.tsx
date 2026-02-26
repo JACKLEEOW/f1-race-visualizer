@@ -8,7 +8,7 @@ interface LeaderboardProps {
     activeSlice: any;
     drivers?: Record<string, DriverRosterEntry>;
     selectedDriver: string | null; 
-    onSelectDriver: (driverId: string) => void;
+    onSelectDriver: (driverId: string | null) => void;
 }
 
 export default function Leaderboard({ activeSlice, drivers, selectedDriver, onSelectDriver }: LeaderboardProps) {
@@ -51,7 +51,7 @@ export default function Leaderboard({ activeSlice, drivers, selectedDriver, onSe
                                 stiffness: 300,
                                 damping: 30
                             }}
-                            onClick={() => onSelectDriver(driverId)}
+                            onClick={() => onSelectDriver(selectedDriver === driverId ? null : driverId)}
                             className={`w-full flex items-center justify-between p-3 rounded-lg transition-colors border ${
                                 isSelected 
                                     ? 'bg-[#1e3a5f] border-blue-400 shadow-[0_0_15px_rgba(56,189,248,0.3)]' 
