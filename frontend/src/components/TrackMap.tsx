@@ -103,60 +103,6 @@ export default function TrackMap({ trackMap, timeline, drivers, selectedDriver, 
                     filter="url(#trackGlow)"
                 />
                 
-                {/* Callout line for the selected driver only */}
-                {selectedDriver && activeSlice?.[selectedDriver] && (() => {
-                    const d = activeSlice[selectedDriver];
-                    if (!d?.x || !d?.y) return null;
-
-                    const cx = d.x;
-                    const cy = d.y;
-
-                    // Go right if car is in left half, left if in right half
-                    const goRight = cx < 5000;
-                    const dir = goRight ? 1 : -1;
-
-                    // Diagonal segment: 45° upward away from the car
-                    const diagLen = 500;
-                    const midX = cx + dir * diagLen;
-                    const midY = cy - diagLen;
-
-                    // Horizontal segment extending outward
-                    const horizLen = 700;
-                    const endX = midX + dir * horizLen;
-                    const endY = midY;
-
-                    const abbr = getAbbr(selectedDriver, drivers);
-
-                    return (
-                        <g key="callout">
-                            {/* Diagonal then horizontal line */}
-                            <polyline
-                                points={`${cx},${cy} ${midX},${midY} ${endX},${endY}`}
-                                fill="none"
-                                stroke="white"
-                                strokeWidth="20"
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                opacity="0.8"
-                            />
-                            {/* Driver abbreviation label at the end */}
-                            <text
-                                x={endX + dir * 60}
-                                y={endY}
-                                dominantBaseline="central"
-                                textAnchor={goRight ? 'start' : 'end'}
-                                fontSize="220"
-                                fontWeight="bold"
-                                fill="white"
-                                opacity="0.9"
-                                style={{ fontFamily: 'monospace' }}
-                            >
-                                {abbr}
-                            </text>
-                        </g>
-                    );
-                })()}
-
                 {/* Render a dot for every driver in the current slice */}
                 {driverIds.map(id => {
                     const d = activeSlice[id];
@@ -168,6 +114,8 @@ export default function TrackMap({ trackMap, timeline, drivers, selectedDriver, 
                             y={d.y}
                             color={getColor(id, drivers)}
                             driverNumber={getAbbr(id, drivers)}
+                            isSelected={id === selectedDriver}
+                            abbr={getAbbr(id, drivers)}
                         />
                     );
                 })}
