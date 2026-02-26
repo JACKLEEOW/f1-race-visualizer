@@ -14,7 +14,7 @@ interface TelemetryChartsProps {
 }
 
 function TelemetryCharts({ timeline, drivers, selectedDriver, currentTime }: TelemetryChartsProps) {
-    // Transform the full timeline once — only re-runs when driver or data changes, not every frame
+    // Transform the full timeline once only re-runs when driver or data changes
     const chartData = useMemo(() => {
         if (!timeline || !selectedDriver) return [];
 
@@ -139,7 +139,7 @@ function TelemetryCharts({ timeline, drivers, selectedDriver, currentTime }: Tel
     );
 }
 
-// Only re-render when the 0.2s slice index changes — not on every animation frame
+// Only re-render when the 0.2s slice index changes instead of on every frame
 export default memo(TelemetryCharts, (prev, next) => {
     const prevIdx = Math.floor(prev.currentTime / 0.2);
     const nextIdx = Math.floor(next.currentTime / 0.2);
