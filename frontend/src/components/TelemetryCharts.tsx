@@ -1,4 +1,3 @@
-// src/components/TelemetryCharts.tsx
 import React, { useMemo, memo } from 'react';
 import { getAbbr, getName } from '../lib/driverInfo';
 import {
@@ -32,9 +31,12 @@ function TelemetryCharts({ timeline, drivers, selectedDriver, currentTime }: Tel
         });
     }, [timeline, selectedDriver]);
 
-    // Slice to only show data up to the current race time — chart "draws itself" as race progresses
-    const visibleIndex = Math.min(Math.floor(currentTime / 0.2), chartData.length - 1);
-    const visibleData = chartData.slice(0, visibleIndex + 1);
+    // 30-second sliding window ending at currentTime
+    // keeps the chart at a fixed ~150 points regardless of race length
+    const WINDOW_SEC = 30;
+    const endIndex = Math.min(Math.floor(currentTime / 0.2), chartData.length - 1);
+    const startIndex = Math.max(0, Math.floor((currentTime - WINDOW_SEC) / 0.2));
+    const visibleData = chartData.slice(startIndex, endIndex + 1);
 
     if (!selectedDriver || chartData.length === 0) return null;
 
@@ -93,7 +95,7 @@ function TelemetryCharts({ timeline, drivers, selectedDriver, currentTime }: Tel
                     <p className="text-xs text-[#fcd34d] font-mono uppercase tracking-wider">Gear</p>
                 </div>
                 <ResponsiveContainer width="100%" height="100%">
-                    {/* We use a ComposedChart to combine a Line and a Step chart on two different axes */}
+                    {/* ComposedChart to combine a Line and a Step chart on two different axes */}
                     <ComposedChart data={visibleData}>
                         <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" vertical={false} />
                         <XAxis dataKey="time" hide />

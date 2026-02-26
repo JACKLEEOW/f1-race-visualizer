@@ -1,13 +1,22 @@
 'use client';
 
-import { useState } from 'react'; // <-- Add useState
+import { useState } from 'react';
 import { useRaceEngine } from '../hooks/useRaceEngine';
 import TrackMap from '../components/TrackMap';
-import Leaderboard from '../components/Leaderboard'; // 
+import Leaderboard from '../components/Leaderboard';
 import TelemetryCharts from '@/components/TelemetryCharts';
+import Scrubber from '../components/Scrubber';
 
 export default function RaceVisualizer() {
-    const { raceData, currentTime, isPlaying, setIsPlaying } = useRaceEngine();
+    const { raceData, currentTime, setCurrentTime, isPlaying, setIsPlaying } = useRaceEngine();
+
+    const totalDuration = raceData?.timeline.length
+        ? raceData.timeline[raceData.timeline.length - 1].t
+        : 0;
+
+    function handleSeek(time: number) {
+        setCurrentTime(Math.min(time, totalDuration));
+    }
     
     // State to track the "Focus Driver"
     const [selectedDriver, setSelectedDriver] = useState<string | null>('1'); // Default to Car 1
@@ -58,6 +67,15 @@ export default function RaceVisualizer() {
                             />
                         )}
                         {raceData && (
+                            <div className="mt-4">
+                                <Scrubber
+                                    currentTime={currentTime}
+                                    totalDuration={totalDuration}
+                                    onSeek={handleSeek}
+                                />
+                            </div>
+                        )}
+                        {raceData && (
                             <TelemetryCharts
                                 timeline={raceData.timeline}
                                 drivers={raceData.drivers}
@@ -72,6 +90,8 @@ export default function RaceVisualizer() {
                         <Leaderboard 
                             activeSlice={activeSlice}
                             drivers={raceData?.drivers}
+                            trackMap={raceData?.track_map ?? []}
+                            trackLength={raceData?.metadata.track_length ?? 5000}
                             selectedDriver={selectedDriver}
                             onSelectDriver={setSelectedDriver}
                         />

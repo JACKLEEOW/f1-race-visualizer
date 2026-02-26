@@ -6,6 +6,8 @@ export interface DriverTelemetry {
     t: number; // throttle (0-100)
     b: number; // brake (0-100)
     r: number; // rpm
+    d: number; // distance on current lap (meters)
+    l: number; // current lap number
 }
 
 export interface RaceFrame {
@@ -20,14 +22,21 @@ export interface DriverRosterEntry {
     team:  string;  // e.g. "Red Bull Racing"
 }
 
+export interface LapMarker {
+    lap:  number;  // lap number
+    time: number;  // session time in seconds when this lap started
+}
+
 export interface RaceMetadata{
     circuit: string;
     year: number;
+    track_length: number; // track length in real meters
 }
 
 export interface RaceData {
     metadata:  RaceMetadata;
     drivers:   Record<string, DriverRosterEntry>;
+    laps:      LapMarker[];
     track_map: [number, number][];
     timeline:  RaceFrame[];
 }

@@ -8,7 +8,8 @@ class DriverTelemetry(TypedDict):
     t: int    # Throttle (0-100)
     b: int    # Brake (0-100)
     r: int    # RPM
-    d: float  # Distance travelled (meters)
+    d: float  # Distance travelled on current lap (meters)
+    l: int    # Current lap number
 
 class DriverRosterEntry(TypedDict):
     abbr:  str   # e.g. "VER"
@@ -20,8 +21,13 @@ class RaceFrame(TypedDict, total=False):
     t: float  # Time in seconds
     # dynamic driver keys: '1': DriverTelemetry, '44': DriverTelemetry, ...
 
+class LapMarker(TypedDict):
+    lap:  int    # lap number
+    time: float  # session time in seconds when this lap started
+
 class RaceData(TypedDict):
     metadata:  Dict[str, Union[str, int]]
     drivers:   Dict[str, DriverRosterEntry]   # driver_number -> info
+    laps:      List[LapMarker]
     track_map: List[List[float]]
     timeline:  List[RaceFrame]

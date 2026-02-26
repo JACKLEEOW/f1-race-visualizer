@@ -1,4 +1,5 @@
-import React, { useMemo } from 'react';
+// src/components/Leaderboard.tsx
+import React, { useMemo, useRef, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { getAbbr, getName, getColor } from '../lib/driverInfo';
 import { DriverRosterEntry } from '../types/types';
@@ -7,11 +8,16 @@ interface LeaderboardProps {
     activeSlice: any;
     drivers?: Record<string, DriverRosterEntry>;
     trackMap: [number, number][];
-    trackLength: number; 
+    trackLength: number; // real track length in meters
     selectedDriver: string | null; 
     onSelectDriver: (driverId: string | null) => void;
 }
 
+/**
+ * Find the index of the nearest track-map point to (x, y).
+ * The index represents how far around the track the position is:
+ * 0 = start/finish, trackMap.length-1 = just before start/finish.
+ */
 function nearestTrackIndex(trackMap: [number, number][], x: number, y: number): number {
     let best = 0;
     let bestD2 = Infinity;
@@ -28,6 +34,7 @@ function nearestTrackIndex(trackMap: [number, number][], x: number, y: number): 
 }
 
 export default function Leaderboard({ activeSlice, drivers, trackMap, trackLength, selectedDriver, onSelectDriver }: LeaderboardProps) {
+    // All hooks must be called unconditionally before any early returns.
     const arcData = useMemo(() => {
         if (!trackMap?.length) return { cumLen: [0], totalArc: 1, metersPerUnit: 1 };
         const cumLen = [0];
@@ -41,37 +48,57 @@ export default function Leaderboard({ activeSlice, drivers, trackMap, trackLengt
         return { cumLen, totalArc, metersPerUnit };
     }, [trackMap, trackLength]);
 
+    const prevIdxRef = useRef<Record<string, number>>({});
+
     const N = trackMap?.length ?? 0;
     const driverKeys = activeSlice ? Object.keys(activeSlice).filter(k => k !== 't') : [];
 
-    if (!activeSlice || !N) return null;
+    const rawIdx: Record<string, number> = {};
+    if (activeSlice && N > 0) {
+        for (const id of driverKeys) {
+            const d = activeSlice[id];
+            rawIdx[id] = nearestTrackIndex(trackMap, d.x, d.y);
+        }
+    }
+
+    const prevIdx = prevIdxRef.current;
+    const CROSS_HI = N * 0.85;
+    const CROSS_LO = N * 0.15;
 
     const sortScore: Record<string, number> = {};
     const arcMeters: Record<string, number> = {};
 
     for (const id of driverKeys) {
-        const d = activeSlice[id];
-        const idx = nearestTrackIndex(trackMap, d.x, d.y);
-        
-        // 1. python Lap Number
-        const lap = d.l || 0; 
-        
-        // 2. geometric progress: 0.00 to 0.99
-        const frac = idx / N;
-        
-        // 3. sorting score 
-        sortScore[id] = lap + frac;
-        
-        // 4. calculate total meters driven for perfect physical gaps
-        arcMeters[id] = (lap * trackLength) + (arcData.cumLen[idx] * arcData.metersPerUnit);
+        const lap = activeSlice[id].l || 0;
+        const idx = rawIdx[id] ?? 0;
+
+        // A crossing happened when the driver was near the track end last
+        // frame and is now near the track start — definitive proof they
+        // just crossed the finish line (not merely a lapped car at the
+        // start of a new lap).
+        const crossed =
+            prevIdx[id] !== undefined &&
+            prevIdx[id] > CROSS_HI &&
+            idx < CROSS_LO;
+
+        sortScore[id] = lap * N * 2 + (crossed ? N + idx : idx);
+        arcMeters[id] = crossed
+            ? (arcData.totalArc + arcData.cumLen[idx]) * arcData.metersPerUnit
+            : arcData.cumLen[idx] * arcData.metersPerUnit;
     }
 
-    // Sort descending by score
+    // Save current positions for comparison on the next frame.
+    useEffect(() => {
+        prevIdxRef.current = { ...rawIdx };
+    });
+
+    if (!activeSlice || !N) return null;
+
     const sortedDrivers = [...driverKeys].sort((a, b) => sortScore[b] - sortScore[a]);
-    
+
     const leaderId = sortedDrivers[0];
-    const leaderScore = sortScore[leaderId];
-    const leaderArc = arcMeters[leaderId];
+    const leaderLap = activeSlice[leaderId]?.l || 0;
+    const leaderArc = arcMeters[leaderId] || 0;
 
     return (
         <div className="w-full h-full bg-[#0a0f1e] rounded-xl border border-[#1e3a5f] p-4 flex flex-col shadow-[0_0_40px_rgba(56,189,248,0.05)]">
@@ -84,18 +111,15 @@ export default function Leaderboard({ activeSlice, drivers, trackMap, trackLengt
                     const isSelected = selectedDriver === driverId;
                     const driverData = activeSlice[driverId];
                     
-                    const scoreDiff = leaderScore - sortScore[driverId];
+                    const lapDiff = leaderLap - (driverData.l || 0);
                     const arcGap = leaderArc - arcMeters[driverId];
 
                     let gapLabel: string;
                     if (index === 0) {
                         gapLabel = '';
-                    } else if (scoreDiff >= 1.0) {
-                        // If the score difference is > 1, they are officially lapped
-                        const lapsDown = Math.floor(scoreDiff);
-                        gapLabel = `+${lapsDown} lap${lapsDown > 1 ? 's' : ''}`;
+                    } else if (lapDiff > 0) {
+                        gapLabel = `+${lapDiff} lap${lapDiff > 1 ? 's' : ''}`;
                     } else {
-                        // otherwise, display the exact geometric meter gap
                         gapLabel = `-${Math.abs(Math.round(arcGap))}m`;
                     }
 
@@ -103,7 +127,11 @@ export default function Leaderboard({ activeSlice, drivers, trackMap, trackLengt
                         <motion.button
                             key={driverId}
                             layout
-                            transition={{ type: "spring", stiffness: 300, damping: 30 }}
+                            transition={{
+                                type: "spring",
+                                stiffness: 300,
+                                damping: 30
+                            }}
                             onClick={() => onSelectDriver(selectedDriver === driverId ? null : driverId)}
                             className={`w-full flex items-center justify-between p-3 rounded-lg transition-colors border ${
                                 isSelected 
