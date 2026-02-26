@@ -11,7 +11,7 @@ interface LeaderboardProps {
     selectedDriver: string | null; 
     onSelectDriver: (driverId: string | null) => void;
 }
-
+/* TODO LEADERBOARD STILL OCCASIONALLY BUGS BUT WORKS FOR CURRENT USECASE*/
 function nearestTrackIndex(trackMap: [number, number][], x: number, y: number): number {
     let best = 0;
     let bestD2 = Infinity;
