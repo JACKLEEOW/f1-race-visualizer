@@ -11,9 +11,10 @@ interface LeaderboardProps {
     selectedDriver: string | null; 
     onSelectDriver: (driverId: string | null) => void;
 }
-/* TODO LEADERBOARD STILL OCCASIONALLY BUGS BUT WORKS FOR CURRENT USECASE
-CURRENTLY IT BUGS WHEN PEOPLE IN LAST ARE NEAR FINISH LINE LEADERBOARD GOES OUT OF ORDER
-*/
+
+// Returns the index of the track map point closest to the given x,y coordinate.
+// We compare squared distances (dx²+dy²) instead of real distances to avoid
+// a sqrt call on every point since the comparison result is the same either way.
 function nearestTrackIndex(trackMap: [number, number][], x: number, y: number): number {
     let best = 0;
     let bestD2 = Infinity;
@@ -30,6 +31,11 @@ function nearestTrackIndex(trackMap: [number, number][], x: number, y: number): 
 }
 
 export default function Leaderboard({ activeSlice, drivers, trackMap, trackLength, selectedDriver, onSelectDriver }: LeaderboardProps) {
+    // Pre-compute the cumulative arc length at each track map point.
+    // The track map is in SVG coordinate units, but we want to express
+    // gaps in real-world meters. We build a lookup table (cumLen[i] = total SVG
+    // units from point 0 to point i), then derive a scale factor (metersPerUnit)
+    // from the known real track length so we can convert any index to meters.
     const arcData = useMemo(() => {
         if (!trackMap?.length) return { cumLen: [0], totalArc: 1, metersPerUnit: 1 };
         const cumLen = [0];
@@ -48,32 +54,56 @@ export default function Leaderboard({ activeSlice, drivers, trackMap, trackLengt
 
     if (!activeSlice || !N) return null;
 
-    const sortScore: Record<string, number> = {};
+    // arcMeters[id] = total real-world meters driven by each driver since
+    // the race start, used as a single score for sorting and gaps.
+    // calculated as (completed laps × track length) + (meters into the current lap)
     const arcMeters: Record<string, number> = {};
 
     for (const id of driverKeys) {
         const d = activeSlice[id];
+
+        // Find the closest point on the track centerline to the car's x,y.
+        // This gives us a position that is independent of racing lines,
+        // unlike d.d (the car's own odometer) which diverges between drivers
+        // because of corner-cutting, different lines, pit entry routing, etc.
         const idx = nearestTrackIndex(trackMap, d.x, d.y);
-        
-        // 1. python Lap Number
-        const lap = d.l || 0; 
-        
-        // 2. geometric progress: 0.00 to 0.99
-        const frac = idx / N;
-        
-        // 3. sorting score 
-        sortScore[id] = lap + frac;
-        
-        // 4. calculate total meters driven for perfect physical gaps
-        arcMeters[id] = (lap * trackLength) + (arcData.cumLen[idx] * arcData.metersPerUnit);
+        const lap = d.l ?? 0;
+        const lapDist = d.d ?? 0;
+
+        // geoFrac: where the car is on the track as a 0–1 fraction, based on
+        // its x,y position projected onto the track map.
+        const geoFrac = idx / N;
+        // lapFrac: where the car's OWN odometer thinks it is within the lap,
+        // also expressed as a 0–1 fraction.
+        const lapFrac = trackLength > 0 ? lapDist / trackLength : 0;
+
+        // Lap counter desync
+        // The backend resamples telemetry into 200ms buckets. The lap number
+        // (d.l) and the car's x,y position are both sourced from that same
+        // resampled stream, but can disagree by one sample right at the
+        // start/finish line crossing:
+        //   - geoFrac low + lapFrac high → car's x,y already crossed the line
+        //     but the lap counter hasn't incremented yet → bump lap up by 1.
+        //   - geoFrac high + lapFrac low → lap counter incremented early before
+        //     the car's position caught up → drop lap back by 1.
+        let effectiveLap = lap;
+        if (geoFrac < 0.15 && lapFrac > 0.85) {
+            effectiveLap = lap + 1;
+        } else if (geoFrac > 0.85 && lapFrac < 0.15) {
+            effectiveLap = lap - 1;
+        }
+
+        // Convert the corrected lap + track position into a single meter score.
+        // arcData.cumLen[idx] is the SVG-unit arc length to this track point;
+        // multiplying by metersPerUnit converts it to real meters.
+        arcMeters[id] = (effectiveLap * trackLength) + (arcData.cumLen[idx] * arcData.metersPerUnit);
     }
 
-    // Sort descending by score
-    const sortedDrivers = [...driverKeys].sort((a, b) => sortScore[b] - sortScore[a]);
-    
+    // Sort descending highest total meters driven = furthest ahead in the race.
+    const sortedDrivers = [...driverKeys].sort((a, b) => arcMeters[b] - arcMeters[a]);
+
     const leaderId = sortedDrivers[0];
-    const leaderScore = sortScore[leaderId];
-    const leaderArc = arcMeters[leaderId];
+    const leaderArc = arcMeters[leaderId] ?? 0;
 
     return (
         <div className="w-full h-full bg-[#0a0f1e] rounded-xl border border-[#1e3a5f] p-4 flex flex-col shadow-[0_0_40px_rgba(56,189,248,0.05)]">
@@ -86,19 +116,18 @@ export default function Leaderboard({ activeSlice, drivers, trackMap, trackLengt
                     const isSelected = selectedDriver === driverId;
                     const driverData = activeSlice[driverId];
                     
-                    const scoreDiff = leaderScore - sortScore[driverId];
-                    const arcGap = leaderArc - arcMeters[driverId];
+                    // Gap to the leader in meters. If this exceeds one full
+                    // track length, the driver is at least one lap behind.
+                    const arcGap = leaderArc - (arcMeters[driverId] ?? 0);
+                    const lapsDown = Math.floor(arcGap / trackLength);
 
                     let gapLabel: string;
                     if (index === 0) {
                         gapLabel = '';
-                    } else if (scoreDiff >= 1.0) {
-                        // If the score difference is > 1, they are officially lapped
-                        const lapsDown = Math.floor(scoreDiff);
+                    } else if (lapsDown >= 1) {
                         gapLabel = `+${lapsDown} lap${lapsDown > 1 ? 's' : ''}`;
                     } else {
-                        // otherwise, display the exact geometric meter gap
-                        gapLabel = `-${Math.abs(Math.round(arcGap))}m`;
+                        gapLabel = `-${Math.round(arcGap)}m`;
                     }
 
                     return (
