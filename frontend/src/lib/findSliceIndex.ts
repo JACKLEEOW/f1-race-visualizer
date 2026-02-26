@@ -1,6 +1,6 @@
 /**
  * Binary search to find the last timeline frame whose `t` <= currentTime.
- * O(log n) — safe for full-race timelines with 27,000+ frames.
+ * O(log n)
  */
 export function findSliceIndex(timeline: { t: number }[], currentTime: number): number {
     if (!timeline.length) return 0;
