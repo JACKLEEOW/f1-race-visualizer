@@ -2,6 +2,8 @@
 
 An interactive, real-time Formula 1 race telemetry visualizer powered by the [FastF1](https://github.com/theOehrly/Fast-F1) Python library and a Next.js frontend. Watch any historical F1 race play out on a live track map, explore a dynamic leaderboard, and drill into per-driver telemetry charts — all synchronized to a master playback clock.
 
+Here is a demo: https://drive.google.com/file/d/1dA5ZyXkiUnweEFkbRTfk_srt7o7GlR6f/view?usp=sharing
+
 ---
 
 ## Features
@@ -89,7 +91,7 @@ npm install
 npm run dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) in your browser.
+Open [http://localhost:3000](http://localhost:3000) in your browser. Soon will be hosted!!
 
 ---
 
